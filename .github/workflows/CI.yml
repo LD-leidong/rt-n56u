@@ -5,7 +5,8 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # 【关键修复1】强制指定为稳定的 22.04 版本，避开 ubuntu-latest(24.04) 的依赖冲突地狱
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout Code
@@ -25,9 +26,21 @@ jobs:
           cd toolchain-mipsel
           sh dl_toolchain.sh
 
-      - name: Build Firmware
+      - name: Prepare Config & Build Firmware
         run: |
           cd trunk
+          
+          # 【关键修复2】强制生成 .config 配置文件，彻底解决找不到配置的报错
+          if [ -f configs/templates/HC5661A.config ]; then
+            cp -f configs/templates/HC5661A.config .config
+          elif [ -f configs/boards/HC5661A/config ]; then
+            cp -f configs/boards/HC5661A/config .config
+          else
+            echo "错误：找不到 HC5661A 模板！请检查源码仓库中板子型号是否拼写正确。"
+            exit 1
+          fi
+
+          # 清理缓存并开始编译
           ./clear_tree
           fakeroot ./build_firmware_modify HC5661A
 
@@ -35,4 +48,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Padavan_HC5661A_HWNAT
+          # 将编译出的 trx 格式固件打包上传，供下载刷机
           path: trunk/images/*.trx
