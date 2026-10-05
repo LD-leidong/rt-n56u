@@ -1,0 +1,42 @@
+name: Build Padavan HWNAT
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Target Model'
+        required: true
+        default: 'HC5661A'
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip libtool-bin curl cmake gperf gawk flex bison nano xxd \
+            fakeroot kmod cpio git python3-docutils gettext automake autopoint \
+            texinfo build-essential help2man pkg-config zlib1g-dev libgmp3-dev \
+            libmpc-dev libmpfr-dev libncurses5-dev libltdl-dev wget libc-dev-bin
+
+      - name: Download Toolchain
+        run: |
+          cd toolchain-mipsel
+          sh dl_toolchain.sh
+
+      - name: Build Firmware
+        run: |
+          cd trunk
+          ./clear_tree
+          fakeroot ./build_firmware_modify ${{ github.event.inputs.target }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Padavan_HWNAT_${{ github.event.inputs.target }}
+          path: trunk/images/*.trx
