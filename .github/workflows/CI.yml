@@ -14,6 +14,25 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y unzip libtool-bin curl cmake gperf gawk flex bison nano xxd \
+          sudo apt-get install -y --no-install-recommends \
+            unzip libtool-bin curl cmake gperf gawk flex bison nano xxd \
             fakeroot kmod cpio git python3-docutils gettext automake autopoint \
-            texinfo build-essential help2man pkg-config zlib1g-
+            texinfo build-essential help2man pkg-config zlib1g-dev libgmp-dev \
+            libmpc-dev libmpfr-dev libncurses5-dev libltdl-dev wget
+
+      - name: Download Toolchain
+        run: |
+          cd toolchain-mipsel
+          sh dl_toolchain.sh
+
+      - name: Build Firmware
+        run: |
+          cd trunk
+          ./clear_tree
+          fakeroot ./build_firmware_modify HC5661A
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Padavan_HC5661A_HWNAT
+          path: trunk/images/*.trx
